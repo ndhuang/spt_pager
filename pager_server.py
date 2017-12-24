@@ -11,14 +11,21 @@ import time
 import config
 
 
+##########################################################################
+# TODO
+# 1. Documentation
+# 2. Clean up properly (still unclear what's going on)
+# 3. Start integrating sipcmd
+
 class PagerController(object):
     def __init__(self, ip_addr = config.server_host, port = config.server_port,
                  timeout = config.server_timeout, 
                  pager_interval = config.pager_interval, 
+                 watchdog_timeout = config.watchdog_timeout,
                  enable = True):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.settimeout(timeout)
-        self.watchdog_timeout = 600
+        self.watchdog_timeout = watchdog_timeout
         self.sock.bind((ip_addr, port))
         self.threads = []
         self.pager_interval = pager_interval
@@ -46,7 +53,11 @@ class PagerController(object):
             except socket.timeout:
                 pass
             if time.time() - self.watchdog_last > self.watchdog_timeout:
-                self.page('Watchdog timed out')
+                cmd = 'Watchdog timed out'
+                self.threads.append(threading.Thread(
+                                    target = self.page, args = (cmd,)))
+                self.threads[-1].name = cmd
+                self.threads[-1].start()
             logging.debug('time since last watchdog: {:.00f}'.format(
               time.time() - self.watchdog_last))
             self._cleanup_threads()
