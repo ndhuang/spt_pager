@@ -14,7 +14,13 @@ log 'message': log a message in the pager log, without triggering a page.
 Unfortunately, all whitespace in commands wil be replaced with ascii spaces
 '''
 
-def send_cmd(sock, cmd):
+def send_cmd(cmd):
+    '''
+    Send a command to the pager server.
+    '''
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(args.timeout)
+    sock.connect((args.server, args.port))
     logging.debug('Sending: {}'.format(cmd))
     sock.send(cmd)
     response = sock.recv(4096)
@@ -22,6 +28,7 @@ def send_cmd(sock, cmd):
         logging.error('Command failed, check server log')
     else:
         logging.info(response)
+    sock.close()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description = 
@@ -38,8 +45,4 @@ if __name__ == '__main__':
         cmd = args.cmd[0]
     else:
         cmd = '{} "{}"'.format(args.cmd[0], ' '.join(args.cmd[1:]))
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.settimeout(args.timeout)
-    sock.connect((args.server, args.port))
-    send_cmd(sock, cmd)
-    sock.close()
+    send_cmd(cmd)
